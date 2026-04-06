@@ -1350,168 +1350,343 @@
   <script src="../js/08-dashboard.js"></script>
   <script src="../js/09-vault.js"></script>
   <script src="../js/10-app.js"></script>
-  <script src="../js/ai-assistant.js"></script>
 
-<!-- ═══════════ AI 도우미 UI ═══════════ -->
+<!-- ═══════════════════════════════════════════
+     AI 설계 도우미 — 완전 인라인 버전
+     Anthropic 브라우저 직접 호출 방식
+     API 키는 localStorage에 저장 (외부 전송 없음)
+════════════════════════════════════════════ -->
 <style>
 #ai-fab {
-  position: fixed; bottom: 28px; right: 28px; z-index: 500;
-  width: 54px; height: 54px; border-radius: 50%;
-  background: var(--accent); color: #fff; border: none;
-  font-size: 22px; cursor: pointer;
-  box-shadow: 0 4px 20px rgba(124,106,247,.5);
-  display: flex; align-items: center; justify-content: center;
-  transition: transform .2s;
+  position:fixed; bottom:28px; right:28px; z-index:9000;
+  width:52px; height:52px; border-radius:50%;
+  background:var(--accent); color:#fff; border:none;
+  font-size:22px; cursor:pointer;
+  box-shadow:0 4px 20px rgba(124,106,247,.55);
+  display:flex; align-items:center; justify-content:center;
+  transition:transform .18s;
 }
-#ai-fab:hover { transform: scale(1.1); }
-
-#ai-panel {
-  position: fixed; bottom: 96px; right: 28px; z-index: 501;
-  width: 360px; background: var(--surface);
-  border: 1px solid var(--border); border-radius: 18px;
-  display: flex; flex-direction: column;
-  box-shadow: 0 16px 48px rgba(0,0,0,.5);
-  opacity: 0; transform: translateY(14px) scale(.96);
-  pointer-events: none; transition: opacity .22s, transform .22s;
-  max-height: calc(100vh - 140px);
+#ai-fab:hover{transform:scale(1.1);}
+#_aipanel {
+  position:fixed; bottom:92px; right:28px; z-index:9001;
+  width:350px; background:var(--surface);
+  border:1px solid var(--border); border-radius:16px;
+  display:none; flex-direction:column;
+  box-shadow:0 16px 48px rgba(0,0,0,.55);
+  max-height:calc(100vh - 130px); overflow:hidden;
 }
-#ai-panel.open { opacity: 1; transform: none; pointer-events: all; }
-
-#ai-panel-head {
-  padding: 13px 16px 11px; border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+#_aipanel.show{display:flex;}
+#_aihead {
+  padding:12px 14px 10px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:8px; flex-shrink:0;
 }
-.ai-av {
-  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
-  background: linear-gradient(135deg, var(--accent), var(--green));
-  display: flex; align-items: center; justify-content: center; font-size: 15px;
+._aiav {
+  width:28px; height:28px; border-radius:50%; flex-shrink:0;
+  background:linear-gradient(135deg,var(--accent),var(--green));
+  display:flex; align-items:center; justify-content:center; font-size:14px;
 }
-#ai-close { background: none; border: none; color: var(--muted);
-  font-size: 20px; cursor: pointer; margin-left: auto; padding: 2px 6px; border-radius: 4px; }
-#ai-close:hover { background: var(--surface2); color: var(--text); }
-
-/* 키 입력 화면 */
-#ai-key-setup {
-  padding: 20px 16px; flex-direction: column; gap: 12px;
-  flex-shrink: 0;
+#_aix {
+  background:none; border:none; color:var(--muted); font-size:20px;
+  cursor:pointer; margin-left:auto; padding:0 4px; line-height:1;
 }
-.ai-key-title { font-size: 13px; font-weight: 700; color: var(--text); }
-.ai-key-desc { font-size: 12px; color: var(--muted); line-height: 1.6; }
-.ai-key-desc a { color: var(--accent2); }
-#ai-key-input {
-  width: 100%; background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 7px; color: var(--text); font-size: 12px;
-  padding: 9px 12px; outline: none; font-family: monospace;
+#_aikey {
+  padding:16px; display:flex; flex-direction:column; gap:10px;
 }
-#ai-key-input:focus { border-color: var(--accent); }
-.ai-key-btn {
-  width: 100%; padding: 10px; border-radius: 8px;
-  background: var(--accent); color: #fff; border: none;
-  font-size: 13px; font-weight: 700; cursor: pointer;
+._aikeytit{font-size:13px; font-weight:700; color:var(--text);}
+._aikeydesc{font-size:12px; color:var(--muted); line-height:1.6;}
+._aikeydesc a{color:var(--accent2);}
+#_aikeyinp {
+  width:100%; background:var(--surface2); border:1px solid var(--border);
+  border-radius:6px; color:var(--text); font-size:12px;
+  padding:8px 10px; outline:none; font-family:monospace;
 }
-.ai-key-btn:hover { opacity: .88; }
-.ai-key-reset { background: none; border: none; color: var(--muted);
-  font-size: 11px; cursor: pointer; text-decoration: underline; align-self: center; }
-
-/* 채팅 */
-#ai-chat-area {
-  flex: 1; overflow-y: auto; padding: 14px 14px 8px;
-  flex-direction: column; gap: 10px; min-height: 160px;
+#_aikeyinp:focus{border-color:var(--accent);}
+._aikeybtn {
+  width:100%; padding:10px; border-radius:8px;
+  background:var(--accent); color:#fff; border:none;
+  font-size:13px; font-weight:700; cursor:pointer;
 }
-#ai-chat-area::-webkit-scrollbar { width: 4px; }
-#ai-chat-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-.ai-msg { display: flex; gap: 8px; align-items: flex-end; animation: aiFade .2s ease; }
-.ai-msg.user { flex-direction: row-reverse; }
-@keyframes aiFade { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
-
-.ai-bubble { max-width: 80%; padding: 9px 13px; border-radius: 14px;
-  font-size: 13px; line-height: 1.6; word-break: break-word; }
-.ai-msg.bot .ai-bubble {
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 14px 14px 14px 3px;
+._aireset {
+  background:none; border:none; color:var(--muted);
+  font-size:11px; cursor:pointer; text-decoration:underline;
+  text-align:center;
 }
-.ai-msg.user .ai-bubble {
-  background: var(--accent); color: #fff;
-  border-radius: 14px 14px 3px 14px;
+#_aimsg {
+  flex:1; overflow-y:auto; padding:12px 12px 8px;
+  display:flex; flex-direction:column; gap:8px;
+  min-height:150px;
 }
-.ai-icon { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center; font-size: 13px; }
-.ai-msg.bot .ai-icon { background: linear-gradient(135deg, var(--accent), var(--green)); }
-.ai-msg.user .ai-icon { background: var(--surface2); border: 1px solid var(--border); }
-
-.ai-dots { display: flex; gap: 5px; padding: 10px 12px; }
-.ai-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--muted);
-  animation: aiDot 1.2s infinite; }
-.ai-dots span:nth-child(2){animation-delay:.2s}
-.ai-dots span:nth-child(3){animation-delay:.4s}
-@keyframes aiDot{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-5px);opacity:1}}
-
-#ai-apply-bar { padding: 8px 14px; border-top: 1px solid var(--border); flex-shrink: 0; }
-#ai-apply-btn {
-  width: 100%; padding: 11px; border-radius: 9px;
-  background: linear-gradient(135deg, var(--accent), var(--green));
-  color: #fff; border: none; font-size: 13px; font-weight: 700; cursor: pointer;
+#_aimsg::-webkit-scrollbar{width:3px;}
+#_aimsg::-webkit-scrollbar-thumb{background:var(--border); border-radius:2px;}
+._am{display:flex; gap:7px; align-items:flex-end; animation:_afade .18s ease;}
+._am.u{flex-direction:row-reverse;}
+@keyframes _afade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+._ab{
+  max-width:82%; padding:8px 12px; border-radius:13px;
+  font-size:13px; line-height:1.6; word-break:break-word;
 }
-#ai-apply-btn:hover { opacity: .88; }
-
-#ai-input-bar { padding: 10px 12px 14px; border-top: 1px solid var(--border);
-  display: flex; gap: 8px; flex-shrink: 0; }
-#ai-inp { flex: 1; background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 20px; color: var(--text); font-size: 13px; padding: 9px 14px;
-  outline: none; font-family: inherit; resize: none; max-height: 80px; line-height: 1.45; }
-#ai-inp:focus { border-color: var(--accent); }
-#ai-inp::placeholder { color: var(--muted); }
-#ai-send { width: 36px; height: 36px; border-radius: 50%; background: var(--accent);
-  color: #fff; border: none; cursor: pointer; font-size: 16px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center; align-self: flex-end; }
-#ai-send:disabled { opacity: .35; cursor: default; }
+._am.b ._ab{
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:13px 13px 13px 3px;
+}
+._am.u ._ab{background:var(--accent); color:#fff; border-radius:13px 13px 3px 13px;}
+._aico{
+  width:24px; height:24px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:12px;
+}
+._am.b ._aico{background:linear-gradient(135deg,var(--accent),var(--green));}
+._am.u ._aico{background:var(--surface2); border:1px solid var(--border);}
+._dots{display:flex; gap:4px; padding:9px 12px;}
+._dots span{
+  width:6px; height:6px; border-radius:50%; background:var(--muted);
+  animation:_adot 1.2s infinite;
+}
+._dots span:nth-child(2){animation-delay:.2s;}
+._dots span:nth-child(3){animation-delay:.4s;}
+@keyframes _adot{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-4px);opacity:1}}
+#_aiapply{
+  padding:8px 12px; border-bottom:1px solid var(--border); flex-shrink:0;
+}
+#_aiaplybtn{
+  width:100%; padding:10px; border-radius:8px;
+  background:linear-gradient(135deg,var(--accent),var(--green));
+  color:#fff; border:none; font-size:13px; font-weight:700; cursor:pointer;
+}
+#_aibar{
+  padding:9px 10px 12px; border-top:1px solid var(--border);
+  display:flex; gap:7px; flex-shrink:0;
+}
+#_aiinp{
+  flex:1; background:var(--surface2); border:1px solid var(--border);
+  border-radius:18px; color:var(--text); font-size:13px;
+  padding:8px 13px; outline:none; font-family:inherit;
+  resize:none; max-height:80px; line-height:1.4;
+}
+#_aiinp:focus{border-color:var(--accent);}
+#_aiinp::placeholder{color:var(--muted);}
+#_aisend{
+  width:34px; height:34px; border-radius:50%;
+  background:var(--accent); color:#fff; border:none;
+  cursor:pointer; font-size:15px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  align-self:flex-end;
+}
+#_aisend:disabled{opacity:.35; cursor:default;}
 </style>
 
-<!-- 플로팅 버튼 -->
-<button id="ai-fab" onclick="toggleAI()" title="AI 설계 도우미">✨</button>
+<button id="ai-fab" onclick="_aiToggle()" title="AI 설계 도우미">✨</button>
 
-<!-- AI 패널 -->
-<div id="ai-panel">
-  <!-- 헤더 -->
-  <div id="ai-panel-head">
-    <div class="ai-av">🤖</div>
+<div id="_aipanel">
+  <div id="_aihead">
+    <div class="_aiav">🤖</div>
     <div>
-      <div style="font-size:13px;font-weight:700">AI 설계 도우미</div>
+      <div style="font-size:13px;font-weight:700;color:var(--text)">AI 설계 도우미</div>
       <div style="font-size:11px;color:var(--muted)">어떤 화면을 만들지 함께 생각해드려요</div>
     </div>
-    <button id="ai-close" onclick="toggleAI()">×</button>
+    <button id="_aix" onclick="_aiToggle()">×</button>
   </div>
 
-  <!-- API 키 입력 화면 -->
-  <div id="ai-key-setup" style="display:none">
-    <div class="ai-key-title">🔑 API 키 입력</div>
-    <div class="ai-key-desc">
-      AI 도우미를 사용하려면 Anthropic API 키가 필요해요.<br>
-      키는 이 브라우저에만 저장되고 외부로 전송되지 않아요.<br>
-      <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>에서 발급받으세요.
+  <div id="_aikey">
+    <div class="_aikeytit">🔑 Anthropic API 키 입력</div>
+    <div class="_aikeydesc">
+      처음 한 번만 입력하면 이 브라우저에 저장돼요.<br>
+      키는 외부로 전송되지 않으며 AI 도우미에만 사용돼요.<br>
+      <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>에서 발급
     </div>
-    <input id="ai-key-input" type="password" placeholder="sk-ant-api03-...">
-    <button class="ai-key-btn" onclick="aiSaveKey()">저장하고 시작하기</button>
-    <button class="ai-key-reset" onclick="aiResetKey()">키 초기화</button>
+    <input id="_aikeyinp" type="password" placeholder="sk-ant-api03-...">
+    <button class="_aikeybtn" onclick="_aiSaveKey()">저장하고 시작하기</button>
+    <button class="_aireset" onclick="_aiReset()">키 초기화</button>
   </div>
 
-  <!-- 채팅 영역 -->
-  <div id="ai-chat-area" style="display:none">
-    <div id="ai-messages" style="display:flex;flex-direction:column;gap:10px;width:100%"></div>
+  <div id="_aimsg" style="display:none"></div>
+  <div id="_aiapply" style="display:none">
+    <button id="_aiaplybtn" onclick="_aiApply()">✅ 이 설정으로 자동 채우기</button>
   </div>
-
-  <!-- 적용 버튼 -->
-  <div id="ai-apply-bar" style="display:none">
-    <button id="ai-apply-btn" onclick="applyAI()">✅ 이 설정으로 자동 채우기</button>
-  </div>
-
-  <!-- 입력창 -->
-  <div id="ai-input-bar" style="display:none">
-    <textarea id="ai-inp" rows="1" placeholder="무엇을 만들고 싶은지 말씀해주세요..."></textarea>
-    <button id="ai-send" onclick="sendAI()">↑</button>
+  <div id="_aibar" style="display:none">
+    <textarea id="_aiinp" rows="1" placeholder="무엇을 만들고 싶은지 말씀해주세요..."></textarea>
+    <button id="_aisend" onclick="_aiSend()">↑</button>
   </div>
 </div>
 
+<script>
+(function(){
+const KS='51x_api_key';
+const SYS=`당신은 T51X Summer Studio의 AI 설계 도우미입니다. 화면 기획이 처음인 사용자와 대화하며 어떤 화면을 만들지 파악하고, Studio 폼 설정 JSON을 생성하는 역할입니다.
+[대화 원칙] 항상 한국어로 대화. 쉽고 친절하게. 한 번에 질문 하나만. 4~6번 대화로 수집.
+[수집 순서] 1.어떤 서비스인가 2.웹/앱인가 3.어떤 화면인가 4.주요 정보와 사용자 행동 5.분위기/요구사항
+[설정 생성] 충분한 정보가 모이면 "설정을 완성했어요!" 라고 알리고 아래 구분자 사이에 JSON을 출력하세요.
+%%JS%%
+{"project":"","client":"","font":"Pretendard","resolution":"1920×1080px","notes":"","ratio":"자유","wfStyle":"로우파이 (회색 계열)","responsive":"Desktop First (1920px 기준)","colorTheme":"흰색 배경 (#FFFFFF) + 검정 텍스트","gnb":"햄버거 메뉴 + 슬라이드 패널 우측 (T51형)","interaction":"기본 클릭 인터랙션 (Navigate To)","imageRule":"#EEEEEE 사각형 + 대각선 크로스","textRule":"한국어 Lorem 처리","accessibility":"기본 (별도 명시 없음)","footerType":"2단 — 로고+메뉴(좌) / 회사정보+SNS(우) (T51형)","pages":[{"id":"01","name":"페이지명","note":"","sections":[{"type":"SL-hero-fullscreen","note":""}]}]}
+%%JE%%
+[선택기준] resolution:모바일→"375×812px"/웹→"1920×1080px" | responsive:모바일→"Mobile First (375px 기준)"/웹→"Desktop First (1920px 기준)" | gnb:"없음"/"햄버거 메뉴 + 슬라이드 패널 우측 (T51형)"/"햄버거 메뉴 + 슬라이드 패널 좌측"/"풀 메뉴바 — 로고 좌측 + 메뉴 중앙"/"풀 메뉴바 — 로고 중앙 + 메뉴 양측"/"투명 메뉴바 (스크롤 시 배경 채움)" | colorTheme:"흰색 배경 (#FFFFFF) + 검정 텍스트"/"검정 배경 (#000000) + 흰색 텍스트"/"브랜드 컬러 적용 (별도 명시)" | footerType:모바일→"없음"/웹→"2단 — 로고+메뉴(좌) / 회사정보+SNS(우) (T51형)" | wfStyle:"순수 와이어프레임 (색상 없음)"/"로우파이 (회색 계열)"/"미드파이 (기본 색상 일부 적용)"/"하이파이 (실제 디자인에 가까운)" | sections type:SL-hero-fullscreen/SL-hero-split/SL-hero-image-overlay/SL-content-twocol/SL-content-singlecol/SL-grid-card3/SL-grid-card4/SL-stats-bar/SL-gallery-full/SL-form-contact/SL-form-apply/SL-filter-tabs/SL-pagination/SL-cta-banner/SL-logo-strip/SL-list-table/SL-list-accordion/커스텀`;
+
+let open=false, hist=[], loading=false, json=null;
+
+function gk(){return localStorage.getItem(KS)||'';}
+
+window._aiToggle=function(){
+  open=!open;
+  const p=document.getElementById('_aipanel');
+  if(open){
+    p.classList.add('show');
+    if(gk()){_chat(); if(hist.length===0) setTimeout(_greet,300);}
+    else _key();
+  } else {
+    p.classList.remove('show');
+  }
+};
+
+function _key(){
+  document.getElementById('_aikey').style.display='flex';
+  document.getElementById('_aimsg').style.display='none';
+  document.getElementById('_aiapply').style.display='none';
+  document.getElementById('_aibar').style.display='none';
+}
+
+function _chat(){
+  document.getElementById('_aikey').style.display='none';
+  document.getElementById('_aimsg').style.display='flex';
+  document.getElementById('_aibar').style.display='flex';
+}
+
+window._aiSaveKey=function(){
+  const k=document.getElementById('_aikeyinp').value.trim();
+  if(!k.startsWith('sk-ant-')){alert('sk-ant- 로 시작하는 키를 입력해주세요.');return;}
+  localStorage.setItem(KS,k);
+  _chat();
+  if(hist.length===0) setTimeout(_greet,300);
+};
+
+window._aiReset=function(){
+  if(!confirm('API 키를 초기화할까요?')) return;
+  localStorage.removeItem(KS);
+  hist=[]; json=null;
+  document.getElementById('_aimsg').innerHTML='';
+  document.getElementById('_aikeyinp').value='';
+  document.getElementById('_aiapply').style.display='none';
+  _key();
+};
+
+function _greet(){
+  _bot('안녕하세요! 👋 AI 설계 도우미예요.\n\n어떤 서비스나 앱의 화면을 만들고 싶으신가요?\n예: "여행 예약 앱", "카페 웹사이트", "쇼핑몰 상품 상세"');
+}
+
+function _bot(txt){
+  const c=document.getElementById('_aimsg');
+  if(!c) return;
+  const d=document.createElement('div'); d.className='_am b';
+  d.innerHTML=`<div class="_aico">🤖</div><div class="_ab">${txt.replace(/\n/g,'<br>')}</div>`;
+  c.appendChild(d); c.scrollTop=c.scrollHeight;
+}
+
+function _user(txt){
+  const c=document.getElementById('_aimsg');
+  if(!c) return;
+  const d=document.createElement('div'); d.className='_am u';
+  d.innerHTML=`<div class="_ab">${txt.replace(/\n/g,'<br>')}</div><div class="_aico">👤</div>`;
+  c.appendChild(d); c.scrollTop=c.scrollHeight;
+}
+
+function _typing(){
+  const c=document.getElementById('_aimsg');
+  if(!c) return;
+  const d=document.createElement('div'); d.className='_am b'; d.id='_at';
+  d.innerHTML=`<div class="_aico">🤖</div><div class="_ab"><div class="_dots"><span></span><span></span><span></span></div></div>`;
+  c.appendChild(d); c.scrollTop=c.scrollHeight;
+}
+
+function _stopTyping(){const e=document.getElementById('_at'); if(e)e.remove();}
+
+window._aiSend=async function(){
+  const inp=document.getElementById('_aiinp');
+  const txt=inp.value.trim();
+  if(!txt||loading) return;
+  const k=gk(); if(!k){_key();return;}
+  inp.value=''; inp.style.height='auto';
+  _user(txt);
+  hist.push({role:'user',content:txt});
+  loading=true;
+  document.getElementById('_aisend').disabled=true;
+  _typing();
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':k,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:SYS,messages:hist})
+    });
+    if(r.status===401){_stopTyping();_bot('API 키가 올바르지 않아요. 키를 초기화하고 다시 입력해주세요.');loading=false;document.getElementById('_aisend').disabled=false;return;}
+    const data=await r.json();
+    const reply=data.content?.[0]?.text||'죄송해요, 다시 시도해주세요.';
+    hist.push({role:'assistant',content:reply});
+    _stopTyping();
+    const m=reply.match(/%%JS%%([\s\S]*?)%%JE%%/);
+    if(m){
+      try{
+        json=JSON.parse(m[1].trim());
+        const msg=reply.replace(/%%JS%%[\s\S]*?%%JE%%/,'').trim();
+        _bot(msg||'설정을 완성했어요! 🎉 아래 버튼을 눌러 적용해주세요.');
+        document.getElementById('_aiapply').style.display='block';
+        document.getElementById('_aiinp').disabled=true;
+        document.getElementById('_aisend').disabled=true;
+        return;
+      }catch(e){_bot(reply);}
+    } else {_bot(reply);}
+  }catch(e){
+    _stopTyping();
+    _bot('연결 오류가 발생했어요. 인터넷 연결을 확인해주세요. 🙏');
+  }
+  loading=false;
+  document.getElementById('_aisend').disabled=false;
+  document.getElementById('_aiinp').focus();
+};
+
+window._aiApply=function(){
+  if(!json) return;
+  const s=json;
+  const set=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null)el.value=v;};
+  set('p-project',s.project); set('p-client',s.client);
+  set('p-font',s.font||'Pretendard'); set('p-resolution',s.resolution||'1920×1080px');
+  set('p-notes',s.notes); set('p-ratio',s.ratio||'자유');
+  set('p-wf-style',s.wfStyle); set('p-responsive',s.responsive);
+  set('p-color-theme',s.colorTheme); set('p-gnb',s.gnb);
+  set('p-interaction',s.interaction); set('p-image-rule',s.imageRule);
+  set('p-text-rule',s.textRule); set('p-accessibility',s.accessibility);
+  set('p-footer-type',s.footerType);
+  if(typeof onFooterTypeChange==='function') onFooterTypeChange();
+  if(Array.isArray(s.pages)&&s.pages.length>0){
+    promptPages=[]; pageSections={};
+    s.pages.forEach(p=>{
+      promptPages.push({id:p.id,name:p.name,note:p.note||''});
+      pageSections[p.id]=(p.sections||[]).map(sc=>({type:sc.type||'커스텀',note:sc.note||''}));
+    });
+    _activePageTab=promptPages[0]?.id||null;
+    if(typeof renderPromptPageList==='function') renderPromptPageList();
+    if(typeof renderPageSectionTabs==='function') renderPageSectionTabs();
+    if(typeof updateCounters==='function') updateCounters();
+  }
+  if(typeof triggerAutoSave==='function') triggerAutoSave();
+  open=false; document.getElementById('_aipanel').classList.remove('show');
+  if(typeof showToast==='function') showToast('✅ AI 설정이 적용됐어요!');
+  setTimeout(()=>{
+    const t=document.querySelector('.nav-tab[onclick*="prompt"]');
+    if(t) t.click();
+    if(typeof switchStepTab==='function') switchStepTab(1);
+  },300);
+};
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const inp=document.getElementById('_aiinp');
+  if(inp){
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();window._aiSend();}});
+    inp.addEventListener('input',function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,80)+'px';});
+  }
+});
+})();
+</script>
 </body>
 </html>
