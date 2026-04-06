@@ -60,7 +60,13 @@ function _showKeySetup() {
 
 function _showChat() {
   document.getElementById('ai-key-setup').style.display = 'none';
-  document.getElementById('ai-chat-area').style.display = 'flex';
+  const chatArea = document.getElementById('ai-chat-area');
+  chatArea.style.display = 'flex';
+  chatArea.style.flexDirection = 'column';
+  chatArea.style.overflowY = 'auto';
+  chatArea.style.padding = '14px 14px 8px';
+  chatArea.style.gap = '10px';
+  chatArea.style.minHeight = '160px';
   document.getElementById('ai-input-bar').style.display = 'flex';
 }
 
