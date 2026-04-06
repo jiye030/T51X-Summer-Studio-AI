@@ -45,8 +45,11 @@ function toggleAI() {
     const key = _aiGetKey();
     if (!key) {
       _showKeySetup();
-    } else if (_aiHist.length === 0) {
-      setTimeout(_aiGreet, 300);
+    } else {
+      _showChat();
+      if (_aiHist.length === 0) {
+        setTimeout(_aiGreet, 300);
+      }
     }
   }
 }
