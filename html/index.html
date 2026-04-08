@@ -293,9 +293,9 @@
 
     <div>
       <div class="sub-tabs">
-        <button class="sub-tab active" onclick="switchGenTab('claude')">Claude 업로드용</button>
-        <button class="sub-tab" onclick="switchGenTab('figma')">Figma AI용</button>
-        <button class="sub-tab" onclick="switchGenTab('md')">MD 파일용</button>
+        <button class="sub-tab active" onclick="switchGenTab('claude',this)">Claude 업로드용</button>
+        <button class="sub-tab" onclick="switchGenTab('figma',this)">Figma AI용</button>
+        <button class="sub-tab" onclick="switchGenTab('md',this)">MD 파일용</button>
       </div>
 
       <div id="gen-claude" class="gen-tab-content active">
@@ -1454,7 +1454,10 @@
 }
 #_aibar{
   padding:9px 10px 12px; border-top:1px solid var(--border);
-  display:flex; gap:7px; flex-shrink:0;
+  display:flex; flex-direction:column; gap:6px; flex-shrink:0;
+}
+#_aibar-inner{
+  display:flex; gap:7px; align-items:flex-end;
 }
 #_aiinp{
   flex:1; background:var(--surface2); border:1px solid var(--border);
@@ -1472,6 +1475,33 @@
   align-self:flex-end;
 }
 #_aisend:disabled{opacity:.35; cursor:default;}
+#_aiattach{
+  width:34px; height:34px; border-radius:50%;
+  background:var(--surface2); border:1px solid var(--border);
+  color:var(--muted); cursor:pointer; font-size:16px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  align-self:flex-end; transition:all .15s;
+}
+#_aiattach:hover{border-color:var(--accent); color:var(--accent2);}
+#_aiimgpreview{
+  display:none; position:relative;
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:8px; padding:6px 8px;
+  display:none; align-items:center; gap:8px;
+}
+#_aiimgthumb{
+  width:40px; height:40px; object-fit:cover;
+  border-radius:5px; flex-shrink:0;
+}
+#_aiimglabel{
+  font-size:11px; color:var(--muted); flex:1;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+#_aiimgdel{
+  background:none; border:none; color:var(--muted);
+  cursor:pointer; font-size:16px; padding:0 2px; line-height:1;
+}
+#_aiimgdel:hover{color:var(--red);}
 </style>
 
 <button id="ai-fab" onclick="_aiToggle()" title="AI 설계 도우미">✨</button>
@@ -1503,8 +1533,17 @@
     <button id="_aiaplybtn" onclick="_aiApply()">✅ 이 설정으로 자동 채우기</button>
   </div>
   <div id="_aibar" style="display:none">
-    <textarea id="_aiinp" rows="1" placeholder="무엇을 만들고 싶은지 말씀해주세요..."></textarea>
-    <button id="_aisend" onclick="_aiSend()">↑</button>
+    <div id="_aiimgpreview">
+      <img id="_aiimgthumb" src="" alt="">
+      <span id="_aiimglabel">이미지 첨부됨</span>
+      <button id="_aiimgdel" onclick="_aiRemoveImg()">×</button>
+    </div>
+    <div id="_aibar-inner">
+      <input type="file" id="_aifileinp" accept="image/*" style="display:none" onchange="_aiImgSelected(this)">
+      <button id="_aiattach" onclick="document.getElementById('_aifileinp').click()" title="이미지 첨부">📎</button>
+      <textarea id="_aiinp" rows="1" placeholder="무엇을 만들고 싶은지 말씀해주세요..."></textarea>
+      <button id="_aisend" onclick="_aiSend()">↑</button>
+    </div>
   </div>
 </div>
 
@@ -1512,6 +1551,15 @@
 (function(){
 const KS='51x_api_key';
 const SYS=`당신은 T51X Summer Studio의 AI 설계 도우미입니다. 화면 기획이 처음인 사용자와 대화하며 어떤 화면을 만들지 파악하고, Studio 폼 설정 JSON을 생성하는 역할입니다.
+
+[이미지 분석]
+사용자가 참고 화면 이미지를 첨부하면:
+1. 이미지를 분석해서 화면 구조를 파악하세요 (레이아웃, 주요 섹션, 네비게이션 등)
+2. "이런 구성의 화면이군요!" 라고 분석 내용을 간단히 설명하세요
+3. 웹/앱 여부, 프로젝트명 등 꼭 필요한 정보만 1~2가지 추가로 물어보세요
+4. 충분하면 바로 JSON을 생성하세요
+이미지만 있고 텍스트가 없어도 분석을 시작하세요.
+
 [대화 원칙] 항상 한국어로 대화. 쉽고 친절하게. 한 번에 질문 하나만. 4~6번 대화로 수집.
 [수집 순서] 1.어떤 서비스인가 2.웹/앱인가 3.어떤 화면인가 4.주요 정보와 사용자 행동 5.분위기/요구사항
 [설정 생성] 충분한 정보가 모이면 "설정을 완성했어요!" 라고 알리고 아래 구분자 사이에 JSON을 출력하세요.
@@ -1520,7 +1568,32 @@ const SYS=`당신은 T51X Summer Studio의 AI 설계 도우미입니다. 화면 
 %%JE%%
 [선택기준] resolution:모바일→"375×812px"/웹→"1920×1080px" | responsive:모바일→"Mobile First (375px 기준)"/웹→"Desktop First (1920px 기준)" | gnb:"없음"/"햄버거 메뉴 + 슬라이드 패널 우측 (T51형)"/"햄버거 메뉴 + 슬라이드 패널 좌측"/"풀 메뉴바 — 로고 좌측 + 메뉴 중앙"/"풀 메뉴바 — 로고 중앙 + 메뉴 양측"/"투명 메뉴바 (스크롤 시 배경 채움)" | colorTheme:"흰색 배경 (#FFFFFF) + 검정 텍스트"/"검정 배경 (#000000) + 흰색 텍스트"/"브랜드 컬러 적용 (별도 명시)" | footerType:모바일→"없음"/웹→"2단 — 로고+메뉴(좌) / 회사정보+SNS(우) (T51형)" | wfStyle:"순수 와이어프레임 (색상 없음)"/"로우파이 (회색 계열)"/"미드파이 (기본 색상 일부 적용)"/"하이파이 (실제 디자인에 가까운)" | sections type:SL-hero-fullscreen/SL-hero-split/SL-hero-image-overlay/SL-content-twocol/SL-content-singlecol/SL-grid-card3/SL-grid-card4/SL-stats-bar/SL-gallery-full/SL-form-contact/SL-form-apply/SL-filter-tabs/SL-pagination/SL-cta-banner/SL-logo-strip/SL-list-table/SL-list-accordion/커스텀`;
 
-let open=false, hist=[], loading=false, json=null;
+let open=false, hist=[], loading=false, json=null, _pendingImg=null;
+
+function gk(){return localStorage.getItem(KS)||'';}
+
+// ── 이미지 처리 ──
+window._aiImgSelected=function(inp){
+  const file=inp.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const b64=e.target.result.split(',')[1];
+    const mime=file.type||'image/jpeg';
+    _pendingImg={b64,mime,name:file.name};
+    const prev=document.getElementById('_aiimgpreview');
+    document.getElementById('_aiimgthumb').src=e.target.result;
+    document.getElementById('_aiimglabel').textContent=file.name;
+    prev.style.display='flex';
+  };
+  reader.readAsDataURL(file);
+  inp.value='';
+};
+
+window._aiRemoveImg=function(){
+  _pendingImg=null;
+  document.getElementById('_aiimgpreview').style.display='none';
+  document.getElementById('_aiimgthumb').src='';
+};
 
 function gk(){return localStorage.getItem(KS)||'';}
 
@@ -1600,11 +1673,29 @@ function _stopTyping(){const e=document.getElementById('_at'); if(e)e.remove();}
 window._aiSend=async function(){
   const inp=document.getElementById('_aiinp');
   const txt=inp.value.trim();
-  if(!txt||loading) return;
+  const hasImg=!!_pendingImg;
+  if(!txt&&!hasImg) return;
+  if(loading) return;
   const k=gk(); if(!k){_key();return;}
+
+  let userContent;
+  if(hasImg){
+    userContent=[
+      {type:'image',source:{type:'base64',media_type:_pendingImg.mime,data:_pendingImg.b64}},
+      {type:'text',text:txt||'이 화면을 분석해서 Studio 설정을 만들어주세요.'}
+    ];
+    const c=document.getElementById('_aimsg');
+    const d=document.createElement('div'); d.className='_am u';
+    d.innerHTML=`<div class="_ab" style="padding:4px"><img src="data:${_pendingImg.mime};base64,${_pendingImg.b64}" style="max-width:160px;border-radius:8px;display:block">${txt?`<div style="margin-top:6px;font-size:13px">${txt}</div>`:''}</div><div class="_aico">👤</div>`;
+    c.appendChild(d); c.scrollTop=c.scrollHeight;
+    _aiRemoveImg();
+  } else {
+    userContent=txt;
+    _user(txt);
+  }
+
   inp.value=''; inp.style.height='auto';
-  _user(txt);
-  hist.push({role:'user',content:txt});
+  hist.push({role:'user',content:userContent});
   loading=true;
   document.getElementById('_aisend').disabled=true;
   _typing();
@@ -1633,6 +1724,7 @@ window._aiSend=async function(){
         document.getElementById('_aiapply').style.display='block';
         document.getElementById('_aiinp').disabled=true;
         document.getElementById('_aisend').disabled=true;
+        document.getElementById('_aiattach').disabled=true;
         return;
       }catch(e){_bot(reply);}
     } else {_bot(reply);}
