@@ -28,8 +28,7 @@ function generatePrompt() {
 - **아이콘**: 정사각형 테두리 박스(border 1px #999) + "ICON" 텍스트
 - **텍스트 플레이스홀더**: 가로줄 블록(높이 8~12px, fill #CCCCCC) 또는 "Lorem ipsum"
 - **강조**: 굵기(bold) 또는 밑줄로만 구분, 색상 강조 금지
-- **레이아웃 표시**: 얇은 점선(dashed 1px #CCCCCC)으로 그리드/컬럼 구획
-- **주석**: 검정 실선 화살표 + 검정 텍스트 라벨`;
+- **레이아웃 표시**: 얇은 점선(dashed 1px #CCCCCC)으로 그리드/컬럼 구획`;
 
     if (style.startsWith('로우파이')) return `
 ### 와이어프레임 시각 규칙 — 로우파이 (Lo-Fi · 초기 아이디어 스케치 수준)
@@ -43,8 +42,7 @@ function generatePrompt() {
 - **텍스트**: 제목은 굵은 한 줄 텍스트, 본문은 회색 가로줄 2~3개로 대체
 - **레이아웃**: 얇은 점선으로 영역 구획만. 컬럼·간격 수치 불필요
 - **카드/패널**: 단순 사각형 테두리만. fill·shadow·radius 없음
-- **흐름 표시**: 화면 전환 동작은 화살표(→)와 짧은 텍스트 레이블로만 표시
-- **주석 최소화**: 꼭 필요한 동작 설명만 간단히. 스펙 수치 불필요`;
+- **흐름 표시**: 화면 전환 동작은 화살표(→)와 짧은 텍스트 레이블로만 표시`;
 
     if (style.startsWith('미드파이')) return `
 ### 와이어프레임 시각 규칙 — 미드파이 (Mid-Fi · 와이어프레임 · 기본 색상 일부 적용)
@@ -60,8 +58,7 @@ function generatePrompt() {
 - **타이포**: 제목 #111 굵게 / 본문 #444 / 보조 #888 / 링크 브랜드 컬러
 - **활성 상태**: 브랜드 컬러 강조, 비활성 #CCCCCC
 - **배지/태그**: 브랜드 컬러 배경 10% + 브랜드 컬러 텍스트
-- **워크플로우 필수**: 버튼·링크 클릭 시 화면 전환 동작을 빨간 화살표 + 설명으로 반드시 표기
-- **주석**: 주황 점선 박스(#FF6600) + 기능 동작 텍스트 라벨`;
+- **워크플로우 필수**: 버튼·링크 클릭 시 화면 전환 동작을 빨간 화살표 + 설명으로 반드시 표기`;
 
     if (style.startsWith('하이파이')) return `
 ### 와이어프레임 시각 규칙 — 하이파이 (Hi-Fi · 실제 UI 디자인 수준)
@@ -94,14 +91,9 @@ function generatePrompt() {
 - 텍스트는 Lorem ipsum 대신 실제 카피 또는 현실적 더미 텍스트 사용
 
 #### 컴포넌트
-- 버튼: 실제 디자인 스타일(그라디언트·그림자 포함), hover 상태 주석
+- 버튼: 실제 디자인 스타일(그라디언트·그림자 포함)
 - 카드: 실제 shadow(box-shadow 수치), border-radius 12~16px, padding 수치 기재
-- 인터랙션 상태: Default / Hover / Active / Disabled 모두 주석 명시
-- 간격: 8px 그리드 기반, 실제 padding·margin 수치(px) 기재
-
-#### 반응형 & 주석
-- Desktop → Tablet → Mobile 레이아웃 변화 주석 포함
-- 주석: 파란 실선 박스(#0066CC) + 크기·색상코드·동작 포함한 상세 스펙 라벨`;
+- 간격: 8px 그리드 기반, 실제 padding·margin 수치(px) 기재`;
 
     return `\n### 와이어프레임 스타일\n- ${style}`;
   }
@@ -202,10 +194,8 @@ ${promptPages.map((p,idx) => {
 }).join('\n\n')}
 
 REQUIREMENTS:
-- Page number at bottom-right of each section
 - All image areas must have #EEEEEE fill + diagonal cross marks
 ${footerSpec ? `- Global footer: ${footerSpec}` : '- No footer'}
-- Annotate all click actions with red dotted box + description
 - No horizontal scrolling at any viewport size`;
 
   document.getElementById('output-claude').textContent = claudePrompt;
